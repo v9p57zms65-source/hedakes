@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hedake — Headache Journal</title>
+<meta name="description" content="A private headache journal. Logs stay in your browser.">
+<meta name="theme-color" content="#161826">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="./supabase-config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+/* ── Nocturne tokens ─────────────────────────────────────────────── */
+:root{
+  --color-bg:#161826; --color-surface:#232532; --color-text:#e9e9ed;
+  --color-accent:#9184d9;
+  --color-neutral-100:#f3f5fe; --color-neutral-200:#e4e7f5; --color-neutral-300:#cfd3e5;
+  --color-neutral-400:#b2b6ca; --color-neutral-500:#9397ab; --color-neutral-600:#75798c;
+  --color-neutral-700:#595d6c; --color-neutral-800:#3f424d; --color-neutral-900:#292b31;
+  --color-accent-100:#f5f4ff; --color-accent-200:#e7e5fe; --color-accent-300:#d2cefd;
+  --color-accent-400:#b5abfc; --color-accent-500:#968ae0; --color-accent-600:#796cbf;
+  --color-accent-700:#5d5294; --color-accent-800:#423a6a; --color-accent-900:#2b2741;
+  --font-heading:"Inter",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif;
+  --space-1:2.8px; --space-2:5.6px; --space-3:8.4px; --space-4:11.2px; --space-6:16.8px; --space-8:22.4px;
+  --radius-sm:4px; --radius-md:8px; --radius-lg:14px;
+  --shadow-sm:0 0 0 1px #3f424d;
+  --shadow-md:0 0 0 1px #595d6c, 0 6px 18px rgba(0,0,0,.55);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+h1,h2,h3,h4{font-family:var(--font-heading);font-weight:500;line-height:1.14;letter-spacing:-.015em;margin:0}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+::selection{background:color-mix(in srgb,var(--color-accent) 30%,transparent)}
+::-webkit-scrollbar{width:0;height:0}
+
+/* ── shell ───────────────────────────────────────────────────────── */
+#shell{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;
+  position:relative;background:var(--color-bg)}
+@media (min-width:620px){
+  body{background:#101220}
+  #shell{box-shadow:0 0 0 1px var(--color-neutral-900);min-height:100vh}
+}
+#app{flex:1;padding:calc(env(safe-area-inset-top) + 22px) var(--space-6) calc(env(safe-area-inset-bottom) + 40px)}
+h1.screen{font-size:22px;margin-bottom:var(--space-1)}
+.kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)}
+.sub{font-size:13.5px;color:var(--color-neutral-400)}
+.muted{color:var(--color-neutral-500)}
+.stack{display:flex;flex-direction:column}
+.gap2{gap:var(--space-2)}.gap3{gap:var(--space-3)}.gap4{gap:var(--space-4)}.gap6{gap:var(--space-6)}
+.mt3{margin-top:var(--space-3)}.mt4{margin-top:var(--space-4)}.mt6{margin-top:var(--space-6)}.mt8{margin-top:var(--space-8)}
+.row{display:flex;align-items:center;gap:var(--space-4)}
+.between{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-4)}
+
+.card{background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:var(--space-6)}
+.card.flat{background:transparent;box-shadow:none;border:1px solid var(--color-neutral-800)}
+.hairline{height:1px;background:var(--color-neutral-900)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:500;font-size:14px;
+  padding:var(--space-2) calc(var(--space-3)*1.2);border-radius:var(--radius-md);
+  border:1px solid transparent;background:transparent;min-height:40px}
+.btn-primary{color:var(--color-accent-300);border-color:var(--color-accent)}
+.btn-primary:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
+.btn-primary:active{background:color-mix(in srgb,var(--color-accent) 20%,transparent)}
+.btn-secondary{color:var(--color-neutral-300);border-color:var(--color-neutral-800)}
+.btn-secondary:hover{border-color:var(--color-neutral-600)}
+.btn-ghost{color:var(--color-neutral-400)}
+.btn-ghost:hover{color:var(--color-neutral-200)}
+.btn-block{width:100%}
+.btn-lg{min-height:48px;font-size:14.5px}
+
+.tag{display:inline-block;padding:3px 8px;border-radius:var(--radius-sm);font-size:10.5px;
+  letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--color-neutral-800);color:var(--color-neutral-400)}
+.tag-accent{border-color:var(--color-accent-700);color:var(--color-accent-300)}
+
+.chip{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:var(--radius-md);font-size:13.5px;
+  border:1px solid var(--color-neutral-800);color:var(--color-neutral-300);background:transparent}
+.chip i{font-size:16px;color:var(--color-neutral-500)}
+.chip[aria-pressed="true"] i{color:var(--color-accent)}
+.chip[aria-pressed="true"]{border-color:var(--color-accent);color:var(--color-accent-200);
+  background:color-mix(in srgb,var(--color-accent) 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+
+.input{width:100%;background:var(--color-bg);border:1px solid var(--color-neutral-800);
+  border-radius:var(--radius-md);padding:11px 12px;font-size:14px}
+.input:focus-visible{border-color:var(--color-accent)}
+textarea.input{resize:vertical;min-height:72px}
+
+.metric{background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:14px}
+.metric .n{font-size:34px;font-weight:500;line-height:1;letter-spacing:-.02em}
+.metric .u{font-size:12px;color:var(--color-neutral-500)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;width:100%;height:32px;margin:0}
+input[type=range].sev-slider::-webkit-slider-runnable-track{height:4px;border-radius:2px;
+  background:linear-gradient(to right,hsl(142 72% 40%) 0%,hsl(142 72% 52%) 10%,hsl(48 88% 52%) 50%,hsl(0 78% 56%) 100%)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:99px;
+  background:var(--color-surface);border:2px solid var(--sev-color,var(--color-accent));
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--sev-color,var(--color-accent)) 16%,transparent);margin-top:-12px}
+input[type=range].sev-slider::-moz-range-track{height:4px;border-radius:2px;
+  background:linear-gradient(to right,hsl(142 72% 40%) 0%,hsl(142 72% 52%) 10%,hsl(48 88% 52%) 50%,hsl(0 78% 56%) 100%)}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:99px;background:var(--color-surface);
+  border:2px solid var(--sev-color,var(--color-accent))}
+
+/* charts */
+.chart{display:flex;gap:var(--space-3);align-items:flex-start}
+.chart .yaxis{flex:none;display:flex;flex-direction:column;justify-content:space-between;height:80px;
+  font-size:9.5px;letter-spacing:.06em;color:var(--color-neutral-500);padding-bottom:1px}
+.axis{display:flex;justify-content:space-between;margin-top:var(--space-2);font-size:10.5px;
+  letter-spacing:.06em;color:var(--color-neutral-500)}
+.marks{flex:1;min-width:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:1.5px;align-items:end;height:16px}
+.marks > i{border-radius:1px}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .dow{text-align:center;font-size:10.5px;color:var(--color-neutral-500);padding-bottom:2px}
+.cell{position:relative;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;border-radius:var(--radius-sm);border:1px solid transparent;background:none}
+.cell.today{border-color:var(--color-accent)}
+.cell[aria-selected="true"]{background:color-mix(in srgb,var(--color-accent) 16%,transparent)}
+.cell .d{font-size:12.5px;color:var(--color-neutral-300)}
+.cell[aria-selected="true"] .d{color:var(--color-accent-200)}
+.cell.future .d{color:var(--color-neutral-700)}
+.cell .dot{width:7px;height:7px;border-radius:99px;box-sizing:border-box}
+.legend{display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-4);padding-top:var(--space-4);
+  border-top:1px solid var(--color-neutral-900)}
+.legend span{display:flex;align-items:center;gap:var(--space-2);font-size:11px;color:var(--color-neutral-500)}
+.legend i{width:7px;height:7px;border-radius:99px;box-sizing:border-box;display:block}
+
+/* report rows */
+/* sheet */
+#sheet{position:fixed;inset:0;z-index:60;background:var(--color-bg);display:none;flex-direction:column;
+  max-width:480px;margin:0 auto}
+#sheet.open{display:flex}
+#sheet .head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+  padding:calc(env(safe-area-inset-top) + 16px) var(--space-6) var(--space-4)}
+#sheet .body{flex:1;overflow-y:auto;padding:var(--space-2) var(--space-6) var(--space-6)}
+#sheet .foot{flex:none;display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-6) calc(env(safe-area-inset-bottom) + 22px)}
+.steps{display:flex;gap:4px}
+.steps i{width:5px;height:3px;background:var(--color-neutral-800);transition:width .2s}
+.steps i.on{background:var(--color-accent)}
+.steps i.cur{width:16px}
+.big{font-size:86px;font-weight:500;line-height:.9;letter-spacing:-.04em;text-align:center}
+.band{display:inline-block;padding:4px 11px;border-radius:var(--radius-sm);font-size:11.5px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-300);border:1px solid var(--color-neutral-800)}
+
+.opt{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);width:100%;
+  padding:15px var(--space-6);border-radius:var(--radius-md);background:var(--color-surface);
+  border:1px solid var(--color-neutral-800);font-size:15px;text-align:left}
+.opt[aria-pressed="true"]{border-color:var(--color-accent);background:color-mix(in srgb,var(--color-accent) 10%,transparent)}
+.opt .radio{width:18px;height:18px;border-radius:99px;flex:none;border:1px solid var(--color-neutral-700)}
+.opt[aria-pressed="true"] .radio{border-color:var(--color-accent);background:var(--color-accent);
+  box-shadow:inset 0 0 0 3px var(--color-surface)}
+.seg{display:flex;gap:4px}
+.seg button{flex:1;text-align:center;padding:11px 2px;border-radius:var(--radius-md);font-size:12.5px;
+  border:1px solid var(--color-neutral-800);color:var(--color-neutral-300)}
+.seg button[aria-pressed="true"]{border-color:var(--color-accent);color:var(--color-accent-200);
+  background:color-mix(in srgb,var(--color-accent) 14%,transparent)}
+
+#toast{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 92px);z-index:70;
+  max-width:480px;margin:0 auto;padding:0 var(--space-6);opacity:0;transform:translateY(8px);
+  transition:opacity .25s,transform .25s;pointer-events:none}
+#toast.show{opacity:1;transform:none}
+#toast .inner{display:flex;align-items:center;gap:var(--space-4);background:var(--color-surface);
+  box-shadow:var(--shadow-md);border-radius:var(--radius-md);padding:14px}
+.empty{border:1px dashed var(--color-neutral-800);border-radius:var(--radius-lg);padding:var(--space-8);text-align:center}
+.hmap{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.hmap figure{margin:0;background:var(--color-bg);border:1px solid var(--color-neutral-800);
+  border-radius:var(--radius-md);padding:var(--space-3) 0 var(--space-2)}
+.hmap svg{display:block;width:100%;height:auto}
+.hmap figcaption{text-align:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--color-neutral-500);margin-top:var(--space-2)}
+.reg{fill:var(--color-neutral-500);fill-opacity:.14;cursor:pointer;transition:fill-opacity .15s,fill .15s}
+.reg:hover{fill-opacity:.38}
+.reg:focus{outline:none}
+.reg:focus-visible{fill-opacity:.5;stroke:var(--color-accent);stroke-width:2;paint-order:stroke}
+.reg[aria-pressed="true"]{fill:var(--color-accent);fill-opacity:.92}
+.hmap .side{fill:none;stroke:var(--color-neutral-600);stroke-width:1.6}
+.hmap .feat{fill:none;stroke:var(--color-neutral-700);stroke-width:1.3;stroke-linecap:round}
+.hmap .lr{fill:var(--color-neutral-500);font-size:9px;font-family:var(--font-body);text-anchor:middle}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#161826"/>
+    <circle cx="50" cy="52" r="19" fill="none" stroke="#9184d9" stroke-width="4.5"
+      stroke-linecap="round" stroke-dasharray="94 25" transform="rotate(-63 50 52)"/>
+    <circle cx="66" cy="39" r="4.4" fill="#d2cefd"/>
+  </svg>
+</template>
+<div id="shell">
+  <main id="app" aria-live="polite"></main>
+</div>
+
+<div id="sheet" role="dialog" aria-modal="true" aria-label="Log a headache">
+  <div class="head">
+    <button class="btn btn-ghost" id="sheetCancel">Cancel</button>
+    <div class="steps" id="sheetSteps"></div>
+    <span class="muted" style="font-size:11.5px" id="sheetNo"></span>
+  </div>
+  <div class="body" id="sheetBody"></div>
+  <div class="foot" id="sheetFoot"></div>
+</div>
+
+<div id="toast"><div class="inner"><i class="ph-fill ph-check-circle" style="font-size:20px;color:var(--color-accent)"></i><div style="flex:1;min-width:0"><div id="toastT" style="font-size:14px;font-weight:500"></div><div id="toastS" class="muted" style="font-size:12.5px"></div></div></div></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   Hedake — headache journal. All data lives in localStorage under
+   'hedake.v1'. Nothing leaves the device.
+   ══════════════════════════════════════════════════════════════════ */
+const KEY='hedake.v1', LEGACY_KEY='onset.v1';
+const LOCS=['Left temple','Right temple','Behind the eye','Forehead','Crown','Base of skull','All over'];
+const SYMS=['Throbbing','One-sided','Light sensitivity','Sound sensitivity','Nausea','Aura','Neck stiffness','Tearing eye'];
+const TREATMENTS=['Medication','Rest','Water','Other','No Treatment'];
+const TREAT_ICON={'Medication':'pill','Rest':'bed','Water':'drop','Other':'dots-three','No Treatment':'prohibit'};
+const DELAYS=['<30 min','30–60 min','1–2 h','Later'];
+const IMPACTS=[['none','Carried on as normal'],['half','Managed about half a day'],['lost','Lost the day']];
+const BANDS=[[0,'No pain'],[4,'Mild'],[7,'Moderate'],[10,'Severe']];
+
+/* ── store ──────────────────────────────────────────────────────── */
+const def=()=>({entries:[],days:{},trials:[],settings:{medThreshold:10,name:'',u:0},seeded:false});
+const stamp=()=>Date.now();
+/* Deleted entries are kept as tombstones ({id, deleted:true, u}) so a delete
+   on one device propagates instead of the row reappearing from the other. */
+const ENT=()=>S.entries.filter(e=>!e.deleted);
+let S=def();
+try{
+  let raw=localStorage.getItem(KEY);
+  if(!raw){ // one-time migration from the app's previous name
+    const legacy=localStorage.getItem(LEGACY_KEY);
+    if(legacy){raw=legacy;try{localStorage.setItem(KEY,legacy);}catch(e){}}
+  }
+  if(raw){const p=JSON.parse(raw);S={...def(),...p,settings:{...def().settings,...(p.settings||{})}};}
+}catch(e){}
+/* Records written before sync existed carry no `u`. Stamp them once so they
+   are not treated as infinitely stale the first time two devices meet. */
+(()=>{let n=0;const t=Date.now();
+  S.entries.forEach(e=>{if(!e.u){e.u=t;n++}});
+  Object.values(S.days).forEach(d=>{if(!d.u){d.u=t;n++}});
+  S.trials.forEach(x=>{if(!x.u){x.u=t;n++}});
+  if(!S.settings.u){S.settings.u=t;n++}
+  if(n)try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}})();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}; schedulePush();};
+
+/* ── dates ──────────────────────────────────────────────────────── */
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const today=()=>iso(new Date());
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmt=s=>{const d=parse(s);return d.getDate()+' '+MON[d.getMonth()]};
+const fmtLong=s=>{const d=parse(s);return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]+' '+d.getDate()+' '+['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]};
+const daysBack=n=>{const out=[];for(let i=n-1;i>=0;i--)out.push(addDays(today(),-i));return out};
+
+/* ── derived ────────────────────────────────────────────────────── */
+/* Pain-severity color: a continuous green (1) → yellow (5) → red (10)
+   spectrum, used everywhere a peak-pain number is shown (the log slider,
+   the calendar dots, the 30-day chart) so the same number always reads
+   the same color. 0 ("no pain") stays neutral rather than green — green
+   would misleadingly read as "good, keep doing this". */
+function sev(v){
+  if(!v)return 'var(--color-neutral-600)';
+  const t=Math.max(0,Math.min(1,(v-1)/9));
+  const h=t<=4/9?142-((142-48)*(t/(4/9))):48-(48*((t-4/9)/(5/9)));
+  return `hsl(${h.toFixed(0)} 74% 52%)`;
+}
+const band=v=>(BANDS.find(b=>v<=b[0])||BANDS[3])[1];
+const day=k=>S.days[k]||{};
+const entriesOn=k=>ENT().filter(e=>e.date===k);
+const inWindow=(from,to)=>ENT().filter(e=>e.date>=from&&e.date<=to);
+
+function stats(n=30){
+  const from=addDays(today(),-(n-1)), es=inWindow(from,today());
+  const hDays=new Set(es.map(e=>e.date));
+  const medDays=new Set(es.filter(e=>e.treatments&&e.treatments.includes('Medication')).map(e=>e.date));
+  return {n,from,attacks:es.length,headacheDays:hDays.size,medDays:medDays.size};
+}
+
+function prevHeadacheDays(n=30){
+  const to=addDays(today(),-n), from=addDays(today(),-(2*n-1));
+  return new Set(inWindow(from,to).map(e=>e.date)).size;
+}
+
+function usualPattern(){
+  const es=ENT().slice(-40);
+  if(!es.length)return null;
+  const flat=k=>es.flatMap(e=>e[k]||[]);
+  const locC={},symC={},trC={};
+  flat('locs').forEach(v=>locC[v]=(locC[v]||0)+1);
+  flat('syms').forEach(v=>symC[v]=(symC[v]||0)+1);
+  flat('treatments').forEach(v=>trC[v]=(trC[v]||0)+1);
+  const top=(c,n)=>Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,n);
+  const mode=(arr)=>{const c={};arr.forEach(v=>c[v]=(c[v]||0)+1);return Object.keys(c).sort((a,b)=>c[b]-c[a])[0]};
+  const peaks=es.map(e=>e.peak);
+  return {peak:Math.round(peaks.reduce((a,b)=>a+b,0)/peaks.length),
+    locs:top(locC,1),syms:top(symC,2),treatments:top(trC,2),
+    delay:mode(es.filter(e=>e.delay).map(e=>e.delay))||'<30 min'};
+}
+
+/* ── html helpers ───────────────────────────────────────────────── */
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const el=h=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild};
+let toastTimer;
+function toast(t,s){document.getElementById('toastT').textContent=t;document.getElementById('toastS').textContent=s||'';
+  const n=document.getElementById('toast');n.classList.add('show');clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>n.classList.remove('show'),3600);}
+
+/* ── screens ────────────────────────────────────────────────────── */
+let selDay=today();
+
+function chartHTML(n=30){
+  const ks=daysBack(n), CW=3, GAP=1, W=n*(CW+GAP)-GAP, PH=74, MED=78, H=80;
+  const parts=[];
+  // gridlines: top, midpoint (accent), baseline
+  parts.push(`<rect x="0" y="0" width="${W}" height="0.5" fill="var(--color-neutral-900)"/>`);
+  parts.push(`<rect x="0" y="${PH/2}" width="${W}" height="0.5" fill="var(--color-accent-800)"/>`);
+  parts.push(`<rect x="0" y="${PH-0.5}" width="${W}" height="0.5" fill="var(--color-neutral-700)"/>`);
+  ks.forEach((k,i)=>{
+    const x=i*(CW+GAP);
+    const es=entriesOn(k), peak=es.length?Math.max(...es.map(e=>e.peak||0)):0;
+    if(peak){
+      const bh=Math.max(2,peak/10*PH);
+      parts.push(`<rect x="${x}" y="${PH-bh}" width="${CW}" height="${bh}" fill="${sev(peak)}"/>`);
+    } else {
+      parts.push(`<rect x="${x}" y="0" width="${CW}" height="${PH}" fill="var(--color-neutral-900)"/>`);
+    }
+    if(es.some(e=>e.treatments&&e.treatments.includes('Medication')))
+      parts.push(`<rect x="${x}" y="${MED}" width="${CW}" height="1.5" fill="var(--color-neutral-300)"/>`);
+  });
+  return `<div class="chart">
+    <div class="yaxis"><span>10</span><span>5</span><span>0</span></div>
+    <div style="flex:1;min-width:0">
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="80" preserveAspectRatio="none" role="img"
+        aria-label="Peak pain by day over the last ${n} days">${parts.join('')}</svg>
+      <div class="axis"><span>${fmt(ks[0]).toUpperCase()}</span><span>TODAY</span></div>
+    </div>
+  </div>
+  <div class="row mt3" style="gap:var(--space-2);font-size:10.5px;color:var(--color-neutral-500)">
+    <i style="width:12px;height:2px;background:var(--color-neutral-300);display:block"></i>Medication taken
+  </div>`;
+}
+
+function screenToday(){
+  const st=stats(30), d=day(today()), u=usualPattern();
+  const th=S.settings.medThreshold;
+  const hasData=ENT().length>0;
+  const trial=S.trials.find(t=>t.status==='running');
+  return `
+  <span class="kicker">${fmtLong(today())}</span>
+  <h1 class="screen mt3">${S.settings.name?'Morning, '+esc(S.settings.name):'Today'}</h1>
+  <p class="sub">${hasData?greeting(st):'Nothing logged yet. Start with today, or load a sample month to see how it reads.'}</p>
+
+  <div class="card mt6">
+    <div class="kicker" style="margin-bottom:var(--space-4)">Log</div>
+    ${u?`<button class="opt" style="border-color:var(--color-accent)" data-act="quick">
+      <span class="row" style="gap:var(--space-4)">
+        <i class="ph-fill ph-lightning" style="font-size:20px;color:var(--color-accent)"></i>
+        <span><span style="display:block;font-weight:500;color:var(--color-accent-300)">Same as usual</span>
+        <span class="muted" style="display:block;font-size:12.5px">Peak ${u.peak} · ${esc(u.locs[0]||'—')} · ${esc(u.treatments.join(', ')||'no treatment')}</span></span>
+      </span><i class="ph ph-arrow-right" style="font-size:16px;color:var(--color-neutral-600)"></i>
+    </button>`:''}
+    <button class="opt ${u?'mt3':''}" data-act="log">
+      <span class="row" style="gap:var(--space-4)">
+        <i class="ph ph-pencil-simple" style="font-size:20px;color:var(--color-neutral-400)"></i>
+        <span><span style="display:block">Log Headache</span>
+        <span class="muted" style="display:block;font-size:12.5px">Four steps · about 40 seconds</span></span>
+      </span><i class="ph ph-arrow-right" style="font-size:16px;color:var(--color-neutral-600)"></i>
+    </button>
+  </div>
+
+  <div class="card mt4">
+    <div class="kicker" style="margin-bottom:var(--space-3)">Today's check-in</div>
+    <div class="stack gap3">
+      <label class="between"><span style="font-size:13.5px;color:var(--color-neutral-300)">Sleep last night</span>
+        <span class="row" style="gap:6px"><input class="input" style="width:74px;text-align:right;padding:7px 9px" type="number" step="0.25" min="0" max="14" value="${d.sleep??''}" data-dayfield="sleep" placeholder="h"><span class="muted" style="font-size:12px">h</span></span></label>
+      <label class="between"><span style="font-size:13.5px;color:var(--color-neutral-300)">Screen time</span>
+        <span class="row" style="gap:6px"><input class="input" style="width:74px;text-align:right;padding:7px 9px" type="number" step="0.5" min="0" max="20" value="${d.screen??''}" data-dayfield="screen" placeholder="h"><span class="muted" style="font-size:12px">h</span></span></label>
+      <div class="between"><span style="font-size:13.5px;color:var(--color-neutral-300)">Stress</span>
+        <span class="seg" style="max-width:190px">${[1,2,3,4,5].map(v=>`<button class="" style="flex:1;padding:7px 0;border-radius:var(--radius-sm);font-size:12px;border:1px solid ${d.stress===v?'var(--color-accent)':'var(--color-neutral-800)'};color:${d.stress===v?'var(--color-accent-200)':'var(--color-neutral-400)'};background:${d.stress===v?'color-mix(in srgb,var(--color-accent) 14%,transparent)':'transparent'}" data-daystress="${v}">${v}</button>`).join('')}</span></div>
+      <div class="chips mt3">
+        ${[['lunch','Late or skipped lunch'],['wine','Alcohol'],['pressure','Pressure drop']].map(([k,l])=>
+          `<button class="chip" aria-pressed="${d[k]===true}" data-daytoggle="${k}">${l}</button>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2 mt4">
+    <div class="metric">
+      <div class="kicker" style="font-size:10.5px">Headache days</div>
+      <div class="row" style="align-items:baseline;gap:4px;margin-top:var(--space-3)">
+        <span class="n">${st.headacheDays}</span><span class="u">/ ${st.n}</span>
+      </div>
+      <div class="mt3" style="font-size:11.5px;color:var(--color-neutral-400)">${trendLine(st)}</div>
+    </div>
+    <div class="metric">
+      <div class="kicker" style="font-size:10.5px">Medication days</div>
+      <div class="row" style="align-items:baseline;gap:4px;margin-top:var(--space-3)">
+        <span class="n" style="color:${st.medDays>=th?'var(--color-accent-300)':'var(--color-text)'}">${st.medDays}</span>
+        <span class="u">of ${th}</span>
+      </div>
+      <div style="margin-top:var(--space-4);height:2px;background:var(--color-neutral-800)">
+        <div style="width:${Math.min(100,Math.round(st.medDays/th*100))}%;height:100%;background:var(--color-accent)"></div>
+      </div>
+    </div>
+  </div>
+
+  ${st.attacks?`<div class="card mt4">
+    <div class="between" style="margin-bottom:var(--space-4)">
+      <span class="kicker">Peak pain, 30 days</span><span class="muted" style="font-size:12px">${st.attacks} attack${st.attacks===1?'':'s'}</span>
+    </div>
+    ${chartHTML(30)}
+  </div>`:''}
+
+  ${historySection()}
+
+  ${trial?`<div class="card mt4">
+    <div class="row" style="gap:var(--space-3);margin-bottom:var(--space-4)">
+      <i style="width:14px;height:2px;background:var(--color-accent);display:block"></i>
+      <span class="kicker">Trial · day ${trialDay(trial)} of ${trial.days}</span>
+    </div>
+    <div style="font-size:17px;line-height:1.35;color:var(--color-neutral-200)">${esc(trial.text)}</div>
+    <div style="display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:var(--space-1);align-items:end;margin-top:var(--space-4);height:14px">
+      ${Array.from({length:trial.days},(_,i)=>{const cur=i===trialDay(trial)-1,done=i<trialDay(trial)-1;
+        return `<i style="height:${done||cur?14:8}px;border-radius:1px;background:${done?'var(--color-accent)':cur?'var(--color-accent-700)':'var(--color-neutral-800)'};${cur?'box-shadow:0 0 10px -2px var(--color-accent)':''}"></i>`}).join('')}
+    </div>
+    <div class="mt3 muted" style="font-size:12.5px">${trialProgress(trial)}</div>
+    <button class="btn btn-secondary btn-block mt4" data-act="endTrial">End trial</button>
+  </div>`:''}
+
+  ${!ENT().length&&!S.seeded?`<div class="empty mt4">
+    <p class="sub">Want to see it with data in it?</p>
+    <button class="btn btn-primary mt3" data-act="seed"><i class="ph ph-flask"></i>Load a sample month</button>
+  </div>`:''}
+
+  ${settingsSection()}`;
+}
+
+function greeting(st){
+  const streak=(()=>{let n=0;for(let i=0;i<400;i++){const k=addDays(today(),-i);if(entriesOn(k).length)break;n++}return n})();
+  if(streak===0)return 'A headache logged today. Look after yourself.';
+  if(streak===1)return 'One clear day since your last attack.';
+  return streak+' clear days in a row.';
+}
+function trendLine(st){
+  const prev=prevHeadacheDays(st.n);
+  if(!prev)return 'First month of data';
+  const d=st.headacheDays-prev;
+  return d===0?'Level with last month':(d<0?'↓ '+(-d):'↑ '+d)+' on last month';
+}
+const trialDay=t=>Math.min(t.days,Math.round((parse(today())-parse(t.startDate))/864e5)+1);
+function trialProgress(t){
+  const from=t.startDate, hd=new Set(inWindow(from,today()).map(e=>e.date)).size;
+  return hd?hd+' headache day'+(hd===1?'':'s')+' since it started':'No headache days yet';
+}
+
+/* History used to be its own tab; it now lives inline on Today, right
+   under the 30-day chart, so "today" and "everything before today" share
+   one screen instead of forcing a tab switch to see yesterday. */
+function historySection(){
+  const start=(()=>{const d=parse(today());d.setDate(d.getDate()-d.getDay()+1-28);return iso(d)})();
+  const cells=[];
+  for(let i=0;i<35;i++){
+    const k=addDays(start,i), es=entriesOn(k), peak=es.length?Math.max(...es.map(e=>e.peak||0)):0;
+    const med=es.some(e=>e.treatments&&e.treatments.includes('Medication')), future=k>today();
+    cells.push(`<button class="cell ${k===today()?'today':''} ${future?'future':''}" aria-selected="${k===selDay}" data-day="${k}" ${future?'disabled':''}>
+      <span class="d">${parse(k).getDate()}</span>
+      <span class="dot" style="background:${peak?sev(peak):'transparent'};${med?'border:1.5px solid var(--color-neutral-300)':''};opacity:${peak?1:0}"></span>
+    </button>`);
+  }
+  const es=entriesOn(selDay), d=day(selDay);
+  return `
+  <div class="card mt4" style="padding:14px">
+    <div class="kicker" style="margin-bottom:var(--space-3)">History</div>
+    <div class="cal">${['M','T','W','T','F','S','S'].map(x=>`<span class="dow">${x}</span>`).join('')}</div>
+    <div class="cal">${cells.join('')}</div>
+    <div class="legend">
+      <span><i style="background:${sev(3)}"></i>Mild 1–4</span>
+      <span><i style="background:${sev(6)}"></i>Moderate 5–7</span>
+      <span><i style="background:${sev(9)}"></i>Severe 8–10</span>
+      <span><i style="border:1.5px solid var(--color-neutral-300)"></i>Medication</span>
+    </div>
+  </div>
+  <div class="card mt3">
+    <div class="kicker" style="margin-bottom:var(--space-4)">${fmt(selDay).toUpperCase()}${selDay===today()?' · TODAY':''}</div>
+    ${es.length?es.map((e,i)=>`
+      ${i?'<div class="hairline" style="margin:var(--space-4) 0"></div>':''}
+      <div style="font-size:18px;line-height:1.35;color:var(--color-neutral-200)">${esc(e.note||band(e.peak)+' attack, peak '+e.peak+' of 10')}</div>
+      <div class="stack gap3 mt4">
+        <div class="between"><span class="muted" style="font-size:13px">Peak pain</span><span style="font-size:13.5px">${e.peak} / 10</span></div>
+        <div class="between"><span class="muted" style="font-size:13px">Started</span><span style="font-size:13.5px">${esc(e.start||'—')}</span></div>
+        <div class="between"><span class="muted" style="font-size:13px">Duration</span><span style="font-size:13.5px">${e.dur!=null?e.dur+' h':'—'}</span></div>
+        <div class="between"><span class="muted" style="font-size:13px">Treatment</span><span style="font-size:13.5px;text-align:right">${e.treatments&&e.treatments.length?esc(e.treatments.join(', '))+(e.treatments.includes('Medication')&&e.delay?', '+esc(e.delay):''):'None'}</span></div>
+        ${e.treatments&&e.treatments.includes('Medication')?`<div class="between"><span class="muted" style="font-size:13px">Relief within 2 h</span><span style="font-size:13.5px">${e.relief?'Yes':'No'}</span></div>`:''}
+        <div class="between"><span class="muted" style="font-size:13px">Impact</span><span style="font-size:13.5px">${esc((IMPACTS.find(x=>x[0]===e.impact)||['','—'])[1])}</span></div>
+        ${e.locs&&e.locs.length?`<div class="between"><span class="muted" style="font-size:13px">Location</span><span style="font-size:13.5px;text-align:right;max-width:62%">${esc(e.locs.join(', '))}</span></div>`:''}
+        ${e.syms&&e.syms.length?`<div class="between"><span class="muted" style="font-size:13px">Symptoms</span><span style="font-size:13.5px;text-align:right;max-width:62%">${esc(e.syms.join(', '))}</span></div>`:''}
+      </div>
+      <button class="btn btn-ghost mt3" data-act="del" data-id="${e.id}" style="padding-left:0"><i class="ph ph-trash"></i>Delete this entry</button>
+    `).join(''):`<div style="font-size:18px;color:var(--color-neutral-400)">No headache logged.</div>`}
+    ${Object.keys(d).length?`<div class="hairline" style="margin:var(--space-6) 0"></div>
+      <div class="kicker" style="margin-bottom:var(--space-3)">Check-in</div>
+      <div class="stack gap2">
+        ${d.sleep!=null?`<div class="between"><span class="muted" style="font-size:13px">Sleep</span><span style="font-size:13.5px">${d.sleep} h</span></div>`:''}
+        ${d.screen!=null?`<div class="between"><span class="muted" style="font-size:13px">Screen time</span><span style="font-size:13.5px">${d.screen} h</span></div>`:''}
+        ${d.stress!=null?`<div class="between"><span class="muted" style="font-size:13px">Stress</span><span style="font-size:13.5px">${d.stress} of 5</span></div>`:''}
+        ${[['lunch','Late or skipped lunch'],['wine','Alcohol'],['pressure','Pressure drop']].filter(([k])=>d[k]).map(([k,l])=>
+          `<div class="between"><span class="muted" style="font-size:13px">${l}</span><span style="font-size:13.5px">Yes</span></div>`).join('')}
+      </div>`:''}
+  </div>`;
+}
+
+/* Settings/data now live in a single collapsible-by-scroll card at the
+   bottom of the one-and-only screen — there's no Report tab to keep them
+   on, and no bottom nav to reach it with. */
+function settingsSection(){
+  const th=S.settings.medThreshold;
+  return `
+  <div class="card flat mt8">
+    <div class="kicker" style="margin-bottom:var(--space-4)">Your data</div>
+    <p class="sub" id="syncLine">${esc(syncLabel())}</p>
+    <p class="sub mt3">${SYNC_ON?'Entries are kept in this browser and mirrored to your account, so a second device catches up on sign-in. Export a JSON copy anyway before changing device.':'Everything is stored in this browser only. Nothing is uploaded. Export a copy before clearing your browser data or moving device.'}</p>
+    ${SYNC_ON&&session?`<div class="row mt4" style="gap:var(--space-3)">
+      <button class="btn btn-secondary" style="flex:1" data-act="syncNow"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
+      <button class="btn btn-secondary" style="flex:1" data-act="signOut"><i class="ph ph-sign-out"></i>Sign out</button>
+    </div>`:SYNC_ON?`<button class="btn btn-primary btn-block mt4" data-act="authOpen">
+      <i class="ph ph-lock-key-open"></i>Sign in to sync</button>`:''}
+    <div class="row mt4" style="gap:var(--space-3)">
+      <button class="btn btn-secondary" style="flex:1" data-act="export"><i class="ph ph-download-simple"></i>Export JSON</button>
+      <button class="btn btn-secondary" style="flex:1" data-act="import"><i class="ph ph-upload-simple"></i>Import</button>
+    </div>
+    <div class="hairline mt6"></div>
+    <label class="between mt6"><span style="font-size:13.5px;color:var(--color-neutral-300)">Medication-day threshold</span>
+      <input class="input" style="width:80px;text-align:right;padding:7px 9px" type="number" min="4" max="20" value="${th}" data-setting="medThreshold"></label>
+    <label class="between mt4"><span style="font-size:13.5px;color:var(--color-neutral-300)">Your name</span>
+      <input class="input" style="width:150px;text-align:right;padding:7px 9px" value="${esc(S.settings.name)}" data-setting="name" placeholder="optional"></label>
+    <button class="btn btn-ghost btn-block mt6" data-act="wipe" style="color:var(--color-neutral-500)">Delete everything</button>
+  </div>`;
+}
+
+/* ── log sheet ──────────────────────────────────────────────────── */
+let draft=null, step=0;
+const now=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+const SYM_ICON={'Throbbing':'pulse','One-sided':'square-half','Light sensitivity':'sun',
+  'Sound sensitivity':'speaker-high','Nausea':'mask-sad','Aura':'sparkle',
+  'Neck stiffness':'bone','Tearing eye':'drop'};
+
+/* A schematic pain-location chart: two silhouettes, one region per entry in
+   LOCS. Regions are clipped to the silhouette so a fill never spills past the
+   outline. Left/right are the wearer's own left and right, marked L and R. */
+const FRONT='M60,13 C83,13 97,32 97,57 C97,78 90,96 78,108 C72,114 66,118 60,118 C54,118 48,114 42,108 C30,96 23,78 23,57 C23,32 37,13 60,13 Z';
+function reg(v,shape){
+  const on=draft.locs.includes(v);
+  return `<g class="reg" aria-pressed="${on}" data-draftmulti="locs" data-v="${esc(v)}" role="button"
+    tabindex="0" aria-label="${esc(v)}">${shape}</g>`;
+}
+function headMap(){
+  return `<div class="hmap">
+    <figure><svg viewBox="0 0 120 132" role="group" aria-label="Front of head">
+      <defs><clipPath id="cf"><path d="${FRONT}"/></clipPath></defs>
+      <path d="${FRONT}" fill="var(--color-neutral-900)"/>
+      <g clip-path="url(#cf)">
+        ${reg('Forehead','<rect x="33" y="12" width="54" height="27" rx="13"/>')}
+        ${reg('Left temple','<ellipse cx="91" cy="52" rx="12" ry="15"/>')}
+        ${reg('Right temple','<ellipse cx="29" cy="52" rx="12" ry="15"/>')}
+        ${reg('Behind the eye','<ellipse cx="46" cy="68" rx="12" ry="9"/><ellipse cx="74" cy="68" rx="12" ry="9"/>')}
+      </g>
+      <path d="${FRONT}" class="side"/>
+      <path class="feat" d="M41,55 Q46,51 52,54 M68,54 Q74,51 79,55 M60,62 L60,80 Q60,84 56,85 M50,96 Q60,100 70,96"/>
+      <text class="lr" x="90" y="76">L</text><text class="lr" x="30" y="76">R</text>
+      </svg><figcaption>Front</figcaption></figure>
+
+    <figure><svg viewBox="0 0 120 132" role="group" aria-label="Side of head, facing left">
+      <defs><clipPath id="cs"><ellipse cx="63" cy="60" rx="36" ry="45"/></clipPath></defs>
+      <path d="M28,58 L15,70 L29,77 Z" fill="var(--color-neutral-900)" stroke="var(--color-neutral-600)" stroke-width="1.6"/>
+      <ellipse cx="63" cy="60" rx="36" ry="45" fill="var(--color-neutral-900)"/>
+      <g clip-path="url(#cs)">
+        ${reg('Crown','<rect x="32" y="12" width="62" height="25" rx="13"/>')}
+        ${reg('Base of skull','<rect x="66" y="76" width="38" height="30" rx="13"/>')}
+      </g>
+      <ellipse cx="63" cy="60" rx="36" ry="45" class="side"/>
+      <circle cx="70" cy="63" r="7" class="feat"/>
+      </svg><figcaption>Side</figcaption></figure>
+  </div>
+  <div class="between mt3">
+    <span class="muted" style="font-size:12.5px">${draft.locs.length?esc(draft.locs.join(' · ')):'Tap where it hurts — L and R are your own left and right'}</span>
+    <button class="chip" aria-pressed="${draft.locs.includes('All over')}" data-draftmulti="locs" data-v="All over">All over</button>
+  </div>`;
+}
+
+function newDraft(pre){
+  const u=usualPattern();
+  return {id:'e'+Date.now(),date:today(),start:now(),peak:6,dur:null,locs:[],syms:[],treatments:[],delay:null,
+    relief:false,impact:'none',note:'',...(pre||{})};
+}
+function openSheet(pre,jump){
+  draft=newDraft(pre); step=jump||0;
+  document.getElementById('sheet').classList.add('open');
+  renderSheet();
+}
+function closeSheet(){document.getElementById('sheet').classList.remove('open');draft=null;}
+
+function renderSheet(){
+  const d=draft;
+  document.getElementById('sheetSteps').innerHTML=[0,1,2,3].map(i=>
+    `<i class="${i<=step?'on':''} ${i===step?'cur':''}"></i>`).join('');
+  document.getElementById('sheetNo').textContent=(step+1)+' / 4';
+  const u=usualPattern();
+  let body='',foot='';
+  if(step===0){
+    const note={'No pain':'A pain-free day is still worth logging — those days make the frequency number trustworthy.',
+      'Mild':'Mild attacks are where a simple analgesic has the best odds.',
+      'Moderate':'Most attacks land here. Treating inside thirty minutes is what the data rewards.',
+      'Severe':'Treat now rather than waiting it out. Note the impact on the last step — it drives your disability score.'}[band(d.peak)];
+    body=`<h1 class="screen">How bad is it?</h1>
+      <p class="sub">Started ${esc(d.start)} today. You can change any of this later.</p>
+      <div class="mt8" style="text-align:center">
+        <div class="big" style="color:${d.peak?sev(d.peak):'var(--color-neutral-700)'}">${d.peak}</div>
+        <div class="band mt4">${band(d.peak)}</div>
+      </div>
+      <div class="mt8"><input class="sev-slider" style="--sev-color:${d.peak?sev(d.peak):'var(--color-accent)'}" type="range" min="0" max="10" step="1" value="${d.peak}" data-draft="peak">
+        <div class="axis" style="margin-top:2px"><span>NONE</span><span>WORST IMAGINABLE</span></div></div>
+      <div class="card mt8" style="font-size:13px;color:var(--color-neutral-400)">${note}</div>
+      ${u?`<button class="btn btn-secondary btn-block mt3" data-act="fill"><i class="ph ph-lightning"></i>Fill the rest from my usual pattern</button>`:''}`;
+  } else if(step===1){
+    body=`<h1 class="screen">Where, and what else?</h1>
+      <p class="sub">Location and symptom pattern are what separate migraine from tension-type in your record.</p>
+      <div class="kicker mt8" style="margin-bottom:var(--space-3)">Location</div>
+      ${headMap()}
+      <div class="kicker mt8" style="margin-bottom:var(--space-3)">Symptoms</div>
+      <div class="chips">${SYMS.map(l=>`<button class="chip" aria-pressed="${d.syms.includes(l)}" data-draftmulti="syms" data-v="${esc(l)}"><i class="${d.syms.includes(l)?'ph-fill':'ph'} ph-${SYM_ICON[l]||'circle'}"></i>${l}</button>`).join('')}</div>`;
+  } else if(step===2){
+    const treated=d.treatments.includes('Medication');
+    body=`<h1 class="screen">How did you treat it?</h1>
+      <p class="sub">Timing matters more than dose. This is how the app learns what actually stops an attack for you.</p>
+      <div class="chips mt8">${TREATMENTS.map(l=>`<button class="chip" aria-pressed="${d.treatments.includes(l)}" data-draftmulti="treatments" data-v="${esc(l)}"><i class="${d.treatments.includes(l)?'ph-fill':'ph'} ph-${TREAT_ICON[l]||'circle'}"></i>${l}</button>`).join('')}</div>
+      ${treated?`
+        <div class="kicker mt8" style="margin-bottom:var(--space-3)">Taken how long after onset?</div>
+        <div class="seg">${DELAYS.map(x=>`<button aria-pressed="${d.delay===x}" data-draftset="delay" data-v="${esc(x)}">${x}</button>`).join('')}</div>
+        <div class="chips mt6"><button class="chip" aria-pressed="${!!d.relief}" data-drafttoggle="relief">It worked within 2 hours</button></div>
+        ${medDayWarning()}`:''}`;
+  } else {
+    body=`<h1 class="screen">Last thing — what did it cost you?</h1>
+      <p class="sub">This is the disability figure a clinic asks for, and the one number a diary usually misses.</p>
+      <div class="stack gap2 mt8">${IMPACTS.map(([v,l])=>`<button class="opt" aria-pressed="${d.impact===v}" data-draftset="impact" data-v="${v}">
+        <span>${l}</span><span class="radio"></span></button>`).join('')}</div>
+      <div class="kicker mt8" style="margin-bottom:var(--space-3)">How long did it last?</div>
+      <div class="row" style="gap:var(--space-3)"><input class="input" style="width:100px" type="number" min="0" max="72" step="1" value="${d.dur??''}" data-draft="dur" placeholder="hours"><span class="muted" style="font-size:13px">hours — leave blank if it's still going</span></div>
+      <div class="kicker mt8" style="margin-bottom:var(--space-3)">Note</div>
+      <textarea class="input" data-draft="note" placeholder="Anything you want to remember about this one.">${esc(d.note)}</textarea>`;
+  }
+  foot=`${step>0?`<button class="btn btn-secondary btn-lg" data-act="back">Back</button>`:''}
+    <button class="btn btn-primary btn-lg" style="flex:1" data-act="next">${step===3?'Save entry':'Continue'}</button>`;
+  document.getElementById('sheetBody').innerHTML=body;
+  document.getElementById('sheetFoot').innerHTML=foot;
+}
+function medDayWarning(){
+  const st=stats(30), th=S.settings.medThreshold;
+  const already=new Set(inWindow(st.from,today()).filter(e=>e.treatments&&e.treatments.includes('Medication')).map(e=>e.date));
+  const n=already.has(draft.date)?already.size:already.size+1;
+  if(n<Math.max(4,th-3))return '';
+  return `<p class="muted mt6" style="font-size:12.5px">That makes ${n} medication day${n===1?'':'s'} in the last 30, against a ${th}-day line. Worth a note for your neurologist rather than a worry today.</p>`;
+}
+
+function commitDraft(){
+  const d=draft; d.u=stamp();
+  S.entries=S.entries.filter(e=>e.id!==d.id).concat([d]).sort((a,b)=>a.date<b.date?-1:1);
+  save(); closeSheet(); render();
+  toast('Saved · '+fmt(d.date), 'Peak '+d.peak+' · '+(d.locs[0]||'no location')+(d.treatments&&d.treatments.length?' · '+d.treatments.join(', '):''));
+}
+
+/* ── events ─────────────────────────────────────────────────────── */
+/* Keyboard activation for the SVG head-map regions. They are role="button"
+   with tabindex, so Enter and Space must do exactly what a tap does — routed
+   through the same click handler so the two paths cannot drift apart. */
+document.addEventListener('keydown',ev=>{
+  if(ev.key!=='Enter'&&ev.key!==' ')return;
+  const t=ev.target.closest&&ev.target.closest('[data-draftmulti]');
+  if(!t)return;
+  ev.preventDefault();
+  t.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+});
+
+document.addEventListener('click',ev=>{
+  const t=ev.target.closest('[data-act],[data-day],[data-daytoggle],[data-daystress],[data-draftmulti],[data-draftset],[data-drafttoggle]');
+  if(!t)return;
+  const act=t.dataset.act;
+
+  if(t.dataset.day){selDay=t.dataset.day;render();return}
+  if(t.dataset.daytoggle){const k=t.dataset.daytoggle;const d=S.days[today()]=S.days[today()]||{};d[k]=!d[k];d.u=stamp();save();render();return}
+  if(t.dataset.daystress){const d=S.days[today()]=S.days[today()]||{};const v=+t.dataset.daystress;d.stress=d.stress===v?null:v;d.u=stamp();save();render();return}
+  if(t.dataset.draftmulti){const k=t.dataset.draftmulti,v=t.dataset.v;
+    if(k==='treatments'&&v==='No Treatment'){
+      /* "No Treatment" is exclusive of every real treatment — picking it
+         clears the rest, picking any of the rest clears it. */
+      draft.treatments=draft.treatments.includes('No Treatment')?[]:['No Treatment'];
+    }else if(k==='treatments'){
+      draft.treatments=(draft.treatments.includes(v)?draft.treatments.filter(x=>x!==v):draft.treatments.filter(x=>x!=='No Treatment').concat([v]));
+    }else{
+      draft[k]=draft[k].includes(v)?draft[k].filter(x=>x!==v):draft[k].concat([v]);
+    }
+    renderSheet();
+    /* renderSheet replaces the markup, so move focus back to the equivalent
+       control or a keyboard user is dropped to the top of the sheet. */
+    const again=document.querySelector('[data-draftmulti="'+k+'"][data-v="'+CSS.escape(v)+'"]');
+    if(again&&again.focus)again.focus();
+    return}
+  if(t.dataset.draftset){draft[t.dataset.draftset]=t.dataset.v;renderSheet();return}
+  if(t.dataset.drafttoggle){draft[t.dataset.drafttoggle]=!draft[t.dataset.drafttoggle];renderSheet();return}
+
+  if(act==='log')openSheet();
+  else if(act==='quick'){const u=usualPattern();
+    draft=newDraft({peak:u.peak,locs:u.locs,syms:u.syms,treatments:u.treatments,delay:u.delay,relief:true,impact:'half'});
+    commitDraft();}
+  else if(act==='fill'){const u=usualPattern();
+    Object.assign(draft,{locs:u.locs,syms:u.syms,treatments:u.treatments,delay:u.delay,relief:true});step=3;renderSheet();}
+  else if(act==='next'){ if(step===3)commitDraft(); else {step++;renderSheet();} }
+  else if(act==='back'){step=Math.max(0,step-1);renderSheet();}
+  else if(act==='del'){S.entries=S.entries.map(e=>e.id===t.dataset.id?{id:e.id,deleted:true,u:stamp()}:e);save();render();toast('Entry deleted');}
+  else if(act==='endTrial'){S.trials=S.trials.map(x=>x.status==='running'?{...x,status:'done',u:stamp()}:x);save();render();toast('Trial closed');}
+  else if(act==='seed'){seed();save();render();toast('Sample month loaded','30 days of attacks and check-ins.');}
+  else if(act==='signIn')signIn();
+  else if(act==='authOpen'){authOpen=true;authErr='';window.scrollTo(0,0);render();}
+  else if(act==='authClose'){authOpen=false;render();}
+  else if(act==='syncNow')pull();
+  else if(act==='signOut'){sb&&sb.auth.signOut();session=null;syncState='signed-out';render();toast('Signed out','Your journal stays on this device.');}
+  else if(act==='export'){
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='hedake-'+today()+'.json';a.click();URL.revokeObjectURL(a.href);}
+  else if(act==='import'){
+    const inp=document.createElement('input');inp.type='file';inp.accept='application/json';
+    inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();
+      r.onload=()=>{try{const p=JSON.parse(r.result);
+        S={...def(),...p,settings:{...def().settings,...(p.settings||{})}};save();render();toast('Data imported');}
+        catch(e){toast('That file could not be read')}};r.readAsText(f)};
+    inp.click();}
+  else if(act==='wipe'){ if(confirm('Delete every entry, check-in and setting? This cannot be undone.')){
+    S=def();save();selDay=today();render();toast('All data deleted');} }
+});
+
+document.addEventListener('input',ev=>{
+  const t=ev.target;
+  if(t.hasAttribute&&t.hasAttribute('data-authpw')){authPw=t.value;authErr='';return}
+  if(t.dataset.draft){
+    const k=t.dataset.draft;
+    draft[k]=k==='note'?t.value:(t.value===''?null:+t.value);
+    if(k==='peak'){renderSheet();const r=document.querySelector('[data-draft="peak"]');r&&r.focus();}
+    return;
+  }
+  if(t.dataset.dayfield){const d=S.days[today()]=S.days[today()]||{};
+    d[t.dataset.dayfield]=t.value===''?null:+t.value;d.u=stamp();save();return}
+  if(t.dataset.setting){const k=t.dataset.setting;
+    S.settings[k]=k==='medThreshold'?Math.max(4,Math.min(20,+t.value||10)):t.value;
+    S.settings.u=stamp();save();return}
+});
+document.addEventListener('change',ev=>{
+  if(ev.target.dataset.setting||ev.target.dataset.dayfield)render();
+});
+document.addEventListener('submit',ev=>{if(ev.target.hasAttribute('data-signin')){ev.preventDefault();signIn();}});
+document.getElementById('sheetCancel').addEventListener('click',closeSheet);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&draft)closeSheet()});
+
+/* ══════════════════════════════════════════════════════════════════
+   Sync — optional. With no Supabase config the app is local-only and
+   none of this runs. With config, the whole journal is one JSONB
+   document per user; records inside carry their own `u` timestamp so
+   two devices merge per record instead of one overwriting the other.
+   ══════════════════════════════════════════════════════════════════ */
+const CFG=window.HEDAKE_CONFIG||{};
+const SYNC_ON=!!(CFG.url&&CFG.anonKey);
+const SB_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+let sb=null, session=null, syncState=SYNC_ON?'connecting':'off', syncedAt=null;
+let authEmail=CFG.identity||'', authPw='', authErr='', authOpen=false, authBusy=false;
+
+const loadScript=src=>new Promise((ok,no)=>{
+  const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});
+
+function mergeDoc(local,remote){
+  const newer=(a,b)=>((a&&a.u)||0)>((b&&b.u)||0);
+  const byId=o=>{const m={};(o||[]).forEach(x=>m[x.id]=x);return m};
+  const e=byId(local.entries);
+  (remote.entries||[]).forEach(x=>{if(!e[x.id]||newer(x,e[x.id]))e[x.id]=x});
+  const d={...(local.days||{})};
+  Object.keys(remote.days||{}).forEach(k=>{if(!d[k]||newer(remote.days[k],d[k]))d[k]=remote.days[k]});
+  const t=byId(local.trials);
+  (remote.trials||[]).forEach(x=>{if(!t[x.id]||newer(x,t[x.id]))t[x.id]=x});
+  return {...local,
+    entries:Object.values(e).sort((a,b)=>(a.date||'')<(b.date||'')?-1:1),
+    days:d, trials:Object.values(t),
+    settings:newer(remote.settings,local.settings)?remote.settings:local.settings,
+    seeded:local.seeded||remote.seeded};
+}
+
+let pushTimer=null, pushing=false;
+function schedulePush(){
+  if(!sb||!session)return;
+  clearTimeout(pushTimer);
+  syncState='pending'; paintSync();
+  pushTimer=setTimeout(push,1200);
+}
+async function push(){
+  if(!sb||!session||pushing)return;
+  pushing=true; syncState='syncing'; paintSync();
+  try{
+    const {error}=await sb.from('journals').upsert({user_id:session.user.id,doc:S},{onConflict:'user_id'});
+    if(error)throw error;
+    syncState='synced'; syncedAt=Date.now();
+  }catch(err){ syncState='error'; console.warn('push failed',err); }
+  pushing=false; paintSync();
+}
+async function pull(){
+  if(!sb||!session)return;
+  syncState='syncing'; paintSync();
+  try{
+    const {data,error}=await sb.from('journals').select('doc').eq('user_id',session.user.id).maybeSingle();
+    if(error)throw error;
+    if(data&&data.doc&&Object.keys(data.doc).length){
+      S=mergeDoc(S,{...def(),...data.doc,settings:{...def().settings,...(data.doc.settings||{})}});
+      try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+    }
+    syncState='synced'; syncedAt=Date.now(); render();
+    await push(); // hand our own local additions up
+  }catch(err){ syncState='error'; console.warn('pull failed',err); paintSync(); }
+}
+
+async function initSync(){
+  if(!SYNC_ON)return;
+  try{
+    await loadScript(SB_CDN);
+    sb=window.supabase.createClient(CFG.url,CFG.anonKey,{auth:{persistSession:true,detectSessionInUrl:true}});
+    const {data}=await sb.auth.getSession();
+    session=data.session||null;
+    sb.auth.onAuthStateChange((_e,s)=>{
+      const had=!!session; session=s||null; render();
+      if(session&&!had)pull();
+    });
+    syncState=session?'syncing':'signed-out'; render();
+    if(session)await pull();
+  }catch(err){ syncState='error'; console.warn('sync unavailable',err); render(); }
+}
+
+function syncLabel(){
+  if(!SYNC_ON)return 'Local only — no account, nothing uploaded.';
+  if(!session)return 'Not signed in. This device only.';
+  const who=session.user.email||'your account';
+  const when=syncedAt?' · synced '+relTime(syncedAt):'';
+  return {connecting:'Connecting…',syncing:'Syncing…',pending:'Saving…',
+    synced:'Synced to '+who+when,error:'Sync failed — changes are safe locally, will retry',
+    'signed-out':'Not signed in'}[syncState]||who;
+}
+const relTime=ts=>{const s=Math.round((Date.now()-ts)/1000);
+  return s<60?'just now':s<3600?Math.round(s/60)+' min ago':Math.round(s/3600)+' h ago'};
+function paintSync(){const n=document.getElementById('syncLine');if(n)n.textContent=syncLabel();}
+
+async function signIn(){
+  if(!sb||authBusy)return;
+  if(!authPw){authErr='Enter your password.';render();return}
+  authBusy=true; authErr=''; render();
+  const {error}=await sb.auth.signInWithPassword({email:(authEmail||'').trim(),password:authPw});
+  authBusy=false;
+  if(error){authErr=error.message||'Sign-in failed.';console.warn(error);render();return}
+  authPw=''; authOpen=false; render();
+  toast('Signed in','Catching up with your other device…');
+}
+
+function screenAuth(){
+  const gated=CFG.requireAuth!==false;
+  return `
+  <div style="min-height:${gated?'70vh':'auto'};display:flex;flex-direction:column;justify-content:center">
+    <div style="width:44px;height:44px;border-radius:99px;border:2px solid var(--color-accent);
+      position:relative;margin-bottom:var(--space-8)">
+      <span style="position:absolute;top:-3px;right:2px;width:7px;height:7px;border-radius:99px;
+        background:var(--color-accent-300)"></span></div>
+    <h1 class="screen">${gated?'Hedake':'Sign in to sync'}</h1>
+    <p class="sub">${gated
+      ?'Your headache journal. Sign in to unlock it on this device.'
+      :'Signing in mirrors this journal to your account, so your phone and laptop show the same thing. Your entries stay on this device either way.'}</p>
+
+    <div class="card mt8">
+      <div class="kicker" style="margin-bottom:var(--space-3)">Account</div>
+      <div class="between"><span style="font-size:13.5px;color:var(--color-neutral-300)">${esc(authEmail||'—')}</span>
+        <span class="tag">the only account</span></div>
+      <div class="kicker mt6" style="margin-bottom:var(--space-3)">Password</div>
+      <form data-signin><input class="input" type="password" autocomplete="current-password"
+        placeholder="Your password" value="${esc(authPw)}" data-authpw></form>
+      ${authErr?`<p class="mt3" style="font-size:12.5px;color:var(--color-accent-300)">${esc(authErr)}</p>`:''}
+      <button class="btn btn-primary btn-block btn-lg mt4" data-act="signIn" ${authBusy?'disabled':''}>
+        <i class="ph ph-lock-key-open"></i>${authBusy?'Signing in…':'Sign in'}</button>
+    </div>
+
+    ${gated?'':`<button class="btn btn-secondary btn-block btn-lg mt3" data-act="authClose">Not now — keep it local</button>`}
+    <p class="muted mt8" style="font-size:11.5px">One account, created from the Supabase dashboard, with sign-ups closed — so no second account can exist. Row-level security scopes every read and write to it.</p>
+  </div>`;
+}
+
+/* ── render ─────────────────────────────────────────────────────── */
+/* One screen now — no tabs, no bottom nav. Today (log, check-in, metrics,
+   chart, history) and the data/settings card render together; sign-in
+   replaces the whole screen only while it's actually gating access. */
+function render(){
+  const gated=SYNC_ON&&CFG.requireAuth!==false&&!session;
+  if(gated||(authOpen&&!session)){document.getElementById('app').innerHTML=screenAuth();return}
+  document.getElementById('app').innerHTML=screenToday();
+}
+
+/* ── sample month ───────────────────────────────────────────────── */
+function seed(){
+  const A=[[27,4,null,5,'none','Woke with a tight band across the front. Rode it out.'],
+    [26,6,'Sumatriptan 50 mg',8,'half','Right side, throbbing. Aura twenty minutes ahead of it.'],
+    [24,5,null,6,'half','Left temple. Dark room for an hour.'],
+    [23,7,'Sumatriptan 50 mg',9,'lost','Nausea from the start. Treated late.'],
+    [20,3,null,3,'none','Mild, cleared after lunch.'],
+    [19,6,'Ibuprofen 400 mg',7,'half','Behind the left eye. Ibuprofen did little.'],
+    [17,8,'Sumatriptan 50 mg',15,'lost','Lost the whole day. Pressure had dropped.'],
+    [16,5,null,6,'half','Carry-over from yesterday.'],
+    [13,6,'Ibuprofen 400 mg',7,'half','Skipped lunch. Left temple again.'],
+    [12,4,null,4,'none','Dull, both sides.'],
+    [10,7,'Sumatriptan 50 mg',12,'lost','Cancelled the evening. Treated within the hour.'],
+    [9,5,null,5,'half','Base of the skull, tight.'],
+    [6,6,'Sumatriptan 50 mg',8,'half','Slept five hours. Woke with it.'],
+    [5,4,null,4,'none','Mild. Walked it off.'],
+    [4,7,'Sumatriptan 50 mg',13,'lost','Full day in bed. Light hurt.'],
+    [2,5,'Ibuprofen 400 mg',6,'half','Forehead pressure, no nausea.'],
+    [1,9,'Sumatriptan 50 mg',16,'lost','Worst of the month. Dark room, all day, no work.']];
+  S.entries=A.map(([back,peak,med,dur,impact,note],i)=>({
+    id:'seed'+i,date:addDays(today(),-back),start:['07:20','09:40','14:10','11:05','16:30'][i%5],
+    peak,dur,treatments:med?['Medication']:(impact==='none'?['Rest']:['Rest','Water']),
+    delay:med?(peak>=7?(i%2?'1–2 h':'<30 min'):'30–60 min'):null,
+    relief:!!med&&(peak<8?(i%3!==0):false),impact,
+    locs:[LOCS[i%4]],syms:peak>=6?['Throbbing','Light sensitivity']:['Throbbing'],note,u:stamp()
+  })).sort((a,b)=>a.date<b.date?-1:1);
+  // A plausible spread of daily check-ins, just for the demo to have
+  // something to show — no correlation engine reads these right now.
+  const offs=Array.from({length:30},(_,i)=>i);
+  S.days={};
+  offs.forEach(i=>{S.days[addDays(today(),-i)]={
+    sleep:+(5.5+((i*3)%5)*0.6).toFixed(2),
+    screen:+(4+((i*5)%7)*0.7).toFixed(2), stress:1+((i*7)%5),
+    lunch:i%5===0, wine:i%9===0, pressure:i%11===0, u:stamp()};});
+  S.settings.name=S.settings.name||'';
+  S.seeded=true;
+}
+
+render();
+initSync();
+setInterval(paintSync,30000);
+if('serviceWorker' in navigator)
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
