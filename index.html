@@ -501,7 +501,7 @@ function settingsSection(){
   <div class="card flat mt8">
     <div class="kicker" style="margin-bottom:var(--space-4)">Your data</div>
     <p class="sub" id="syncLine">${esc(syncLabel())}</p>
-    <p class="sub mt3">${SYNC_ON?'Entries are kept in this browser and backed up automatically — no account needed. Export a JSON copy anyway before switching devices.':'Everything is stored in this browser only. Nothing is uploaded. Export a copy before clearing your browser data or moving device.'}</p>
+    <p class="sub mt3">${SYNC_ON?'Entries sync automatically between your devices — no account needed. Export a JSON copy anyway as a backup.':'Everything is stored in this browser only. Nothing is uploaded. Export a copy before clearing your browser data or moving device.'}</p>
     ${SYNC_ON?`<div class="row mt4" style="gap:var(--space-3)">
       <button class="btn btn-secondary btn-block" data-act="syncNow"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
     </div>`:''}
@@ -530,12 +530,12 @@ const LOC_IMG='data:image/webp;base64,UklGRqSpAQBXRUJQVlA4IJipAQDQLAWdASruBncDPj
    on the left half, side/profile view on the right half of one combined
    illustration), calibrated against the image's native 1774x887 pixels. */
 const LOC_HOT=[
-  {v:'Crown',clip:'polygon(74.35% 3.61%,69.56% 5.64%,67.53% 6.76%,66.07% 7.89%,64.88% 9.02%,63.92% 10.15%,84.44% 10.15%,83.54% 9.02%,82.47% 7.89%,81.00% 6.76%,79.20% 5.64%)'},
+  {v:'Crown',clip:'polygon(74.35% 2.25%,69.56% 5.64%,67.53% 6.76%,66.07% 7.89%,64.88% 9.02%,63.92% 10.15%,63.08% 11.27%,62.34% 12.40%,61.78% 13.53%,61.22% 14.66%,87.09% 14.66%,86.53% 13.53%,85.91% 12.40%,85.23% 11.27%,84.44% 10.15%,83.54% 9.02%,82.47% 7.89%,81.00% 6.76%,79.20% 5.64%)'},
   {v:'Forehead',clip:'polygon(15.61% 10.15%,14.21% 12.40%,13.13% 14.66%,12.29% 16.91%,13.81% 25.93%,13.81% 39.46%,34.10% 39.46%,34.10% 25.93%,35.68% 16.91%,34.89% 14.66%,33.88% 12.40%,32.58% 10.15%)'},
   {v:'Right temple',clip:'polygon(12.29% 16.91%,11.67% 19.17%,11.16% 21.42%,10.77% 23.68%,10.48% 25.93%,10.20% 29.31%,10.15% 32.69%,10.26% 36.08%,10.48% 39.46%,13.81% 39.46%,13.81% 25.93%)'},
   {v:'Left temple',clip:'polygon(35.68% 16.91%,36.30% 19.17%,36.75% 21.42%,37.15% 23.68%,37.37% 25.93%,37.60% 29.31%,37.66% 32.69%,37.54% 36.08%,37.32% 39.46%,34.10% 39.46%,34.10% 25.93%)'},
   {v:'Behind the eye',clip:'polygon(13.81% 39.46%,12.97% 45.10%,13.81% 49.61%,34.10% 49.61%,34.95% 45.10%,34.10% 39.46%)'},
-  {v:'Base of skull',clip:'polygon(86.92% 58.62%,86.58% 59.75%,86.25% 60.88%,85.96% 62.01%,85.63% 63.13%,85.40% 64.26%,85.23% 65.39%,85.17% 66.52%,85.23% 67.64%,85.23% 68.77%,85.29% 69.90%,85.34% 71.03%,85.46% 72.15%,85.57% 73.28%,78.92% 73.28%,78.92% 58.62%)'},
+  {v:'Base of skull',clip:'polygon(89.06% 51.86%,88.73% 52.99%,88.39% 54.11%,88.05% 55.24%,87.66% 56.37%,87.32% 57.50%,86.92% 58.62%,86.58% 59.75%,86.25% 60.88%,85.96% 62.01%,85.63% 63.13%,85.40% 64.26%,85.23% 65.39%,85.17% 66.52%,85.23% 67.64%,85.23% 68.77%,85.29% 69.90%,85.34% 71.03%,85.46% 72.15%,85.57% 73.28%,85.74% 74.41%,85.85% 75.54%,86.02% 76.66%,86.19% 77.79%,86.36% 78.92%,86.53% 80.05%,86.75% 81.17%,73.28% 81.17%,73.28% 51.86%)'},
 ];
 function headMap(){
   const hot=LOC_HOT.map(h=>`<button type="button" class="loc-hot" aria-pressed="${draft.locs.includes(h.v)}" aria-label="${esc(h.v)}" data-draftmulti="locs" data-v="${esc(h.v)}" style="clip-path:${h.clip}"></button>`).join('');
@@ -719,11 +719,20 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&draft)closeSheet()}
    ══════════════════════════════════════════════════════════════════ */
 const CFG=window.HEDAKE_CONFIG||{};
 const SYNC_ON=!!(CFG.url&&CFG.anonKey);
-const SB_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-let sb=null, session=null, syncState=SYNC_ON?'connecting':'off', syncedAt=null;
-
-const loadScript=src=>new Promise((ok,no)=>{
-  const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});
+/* Same shared-row pattern as the GTA V tracker: one fixed row in
+   `journal_state`, read and written with nothing but the public anon key —
+   no Supabase Auth, no session, no login screen. Every device that has this
+   page loaded is, by design, the same "user", so they all converge on one
+   document automatically. The tradeoff (spelled out to Richard, and true of
+   the GTA tracker too): the anon key and this row id are sitting in plain
+   sight in this file's source, so the real protection here is that the URL
+   isn't published anywhere, not row-level security scoped to an identity —
+   there is no identity. Don't reuse this pattern for anything where that
+   wouldn't be an acceptable tradeoff. */
+const ROW_ID='hedake-main';
+const REST_URL=CFG.url?CFG.url+'/rest/v1/journal_state':'';
+const SB_HEADERS={'apikey':CFG.anonKey,'Authorization':'Bearer '+CFG.anonKey,'Content-Type':'application/json'};
+let syncState=SYNC_ON?'connecting':'off', syncedAt=null;
 
 function mergeDoc(local,remote){
   const newer=(a,b)=>((a&&a.u)||0)>((b&&b.u)||0);
@@ -743,29 +752,33 @@ function mergeDoc(local,remote){
 
 let pushTimer=null, pushing=false;
 function schedulePush(){
-  if(!sb||!session)return;
+  if(!SYNC_ON)return;
   clearTimeout(pushTimer);
   syncState='pending'; paintSync();
   pushTimer=setTimeout(push,1200);
 }
 async function push(){
-  if(!sb||!session||pushing)return;
+  if(!SYNC_ON||pushing)return;
   pushing=true; syncState='syncing'; paintSync();
   try{
-    const {error}=await sb.from('journals').upsert({user_id:session.user.id,doc:S},{onConflict:'user_id'});
-    if(error)throw error;
+    const res=await fetch(REST_URL,{method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify([{id:ROW_ID,data:S,updated_at:new Date().toISOString()}])});
+    if(!res.ok)throw new Error('push failed: '+res.status);
     syncState='synced'; syncedAt=Date.now();
   }catch(err){ syncState='error'; console.warn('push failed',err); }
   pushing=false; paintSync();
 }
 async function pull(){
-  if(!sb||!session)return;
+  if(!SYNC_ON)return;
   syncState='syncing'; paintSync();
   try{
-    const {data,error}=await sb.from('journals').select('doc').eq('user_id',session.user.id).maybeSingle();
-    if(error)throw error;
-    if(data&&data.doc&&Object.keys(data.doc).length){
-      S=mergeDoc(S,{...def(),...data.doc,settings:{...def().settings,...(data.doc.settings||{})}});
+    const res=await fetch(REST_URL+'?id=eq.'+encodeURIComponent(ROW_ID)+'&select=data',{headers:SB_HEADERS});
+    if(!res.ok)throw new Error('pull failed: '+res.status);
+    const rows=await res.json();
+    const doc=rows&&rows[0]&&rows[0].data;
+    if(doc&&Object.keys(doc).length){
+      S=mergeDoc(S,{...def(),...doc,settings:{...def().settings,...(doc.settings||{})}});
       try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
     }
     syncState='synced'; syncedAt=Date.now(); render();
@@ -775,37 +788,15 @@ async function pull(){
 
 async function initSync(){
   if(!SYNC_ON)return;
-  try{
-    await loadScript(SB_CDN);
-    sb=window.supabase.createClient(CFG.url,CFG.anonKey,{auth:{persistSession:true,detectSessionInUrl:true}});
-    const {data}=await sb.auth.getSession();
-    session=data.session||null;
-    sb.auth.onAuthStateChange((_e,s)=>{
-      const had=!!session; session=s||null; render();
-      if(session&&!had)pull();
-    });
-    if(!session){
-      /* No visible sign-in: an anonymous Supabase user is created once and
-         its session persists in localStorage, so this same device keeps the
-         same auth.uid() — and the same journal row — from then on. Security
-         is Supabase's row-level security on that id, not an app login. */
-      const {data:anon,error}=await sb.auth.signInAnonymously();
-      if(error)throw error;
-      session=anon.session||null;
-    }
-    syncState=session?'syncing':'error'; render();
-    if(session)await pull();
-  }catch(err){ syncState='error'; console.warn('sync unavailable',err); render(); }
+  await pull();
 }
 
 function syncLabel(){
   if(!SYNC_ON)return 'Local only — no account, nothing uploaded.';
-  if(!session)return syncState==='error'?'Sync unavailable — changes are safe locally.':'Connecting…';
-  const who='your backup';
   const when=syncedAt?' · synced '+relTime(syncedAt):'';
   return {connecting:'Connecting…',syncing:'Syncing…',pending:'Saving…',
-    synced:'Synced to '+who+when,error:'Sync failed — changes are safe locally, will retry',
-    }[syncState]||who;
+    synced:'Synced across your devices'+when,error:'Sync failed — changes are safe locally, will retry',
+    }[syncState]||'Connecting…';
 }
 const relTime=ts=>{const s=Math.round((Date.now()-ts)/1000);
   return s<60?'just now':s<3600?Math.round(s/60)+' min ago':Math.round(s/3600)+' h ago'};
