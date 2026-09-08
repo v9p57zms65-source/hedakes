@@ -44,6 +44,11 @@ drop policy if exists journals_delete_own on public.journals;
 create policy journals_delete_own on public.journals
   for delete using (auth.uid() = user_id);
 
--- Belt and braces: no anonymous role should reach this table at all.
+-- Belt and braces: no unauthenticated request (the Postgres `anon` role,
+-- i.e. the API key with no session at all) should reach this table.
+-- Note this is unrelated to Supabase's "anonymous sign-in" *users* — an
+-- anonymous-signed-in user still authenticates and holds the Postgres
+-- `authenticated` role with a real auth.uid(), so every policy above already
+-- covers them with no changes needed.
 revoke all on public.journals from anon;
 grant select, insert, update, delete on public.journals to authenticated;
