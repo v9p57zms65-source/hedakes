@@ -1,10 +1,48 @@
--- Onset — Supabase schema.
+-- Hedake — Supabase schema.
 -- Paste into the Supabase SQL editor and run once.
+
+-- ============================================================================
+-- ACTIVE: journal_state — the table the app actually uses.
 --
--- One row per user holding the whole journal as a JSON document. Records
--- inside the document each carry their own `u` timestamp, so two devices
--- that both changed things merge per record rather than one clobbering the
--- other.
+-- One single fixed row (id = 'hedake-main'), read and written by every
+-- device with nothing but the public anon key — no login, no per-user
+-- identity, same pattern as the GTA V completion tracker's `tracker_state`
+-- table. That's what makes "open the page on a second device and it's
+-- already synced" possible with zero setup on that device.
+--
+-- The RLS policy below is deliberately permissive ("allow all"), and `anon`
+-- is granted full privileges. Be clear that this means there is no real
+-- access control on this table beyond the app's URL not being published —
+-- anyone who has the URL can view-source it, get the anon key and this
+-- table name, and read or write this journal directly via the REST API.
+-- That's an accepted tradeoff for a personal single-user app whose link
+-- isn't shared, not an oversight. Don't copy this pattern for anything
+-- where that wouldn't be fine.
+-- ============================================================================
+
+create table if not exists public.journal_state (
+  id         text primary key,
+  data       jsonb       not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.journal_state enable row level security;
+
+drop policy if exists "allow all for now" on public.journal_state;
+create policy "allow all for now" on public.journal_state
+  for all using (true) with check (true);
+
+grant select, insert, update, delete on public.journal_state to anon, authenticated;
+
+-- ============================================================================
+-- LEGACY: journals — the original per-user, auth.uid()-scoped design.
+--
+-- No longer used by the app. Left in place rather than dropped, in case any
+-- of its history (including one orphaned row from an earlier password-based
+-- sync attempt) is ever wanted back. Harmless as-is: real RLS, nothing
+-- reachable without a genuine Supabase Auth session, and the app no longer
+-- creates any such session.
+-- ============================================================================
 
 create table if not exists public.journals (
   user_id    uuid primary key references auth.users (id) on delete cascade,
@@ -12,7 +50,6 @@ create table if not exists public.journals (
   updated_at timestamptz not null default now()
 );
 
--- Keep updated_at honest regardless of what the client sends.
 create or replace function public.touch_journal()
 returns trigger language plpgsql as $$
 begin
@@ -25,7 +62,6 @@ create trigger journals_touch
   before insert or update on public.journals
   for each row execute function public.touch_journal();
 
--- Row-level security: a user can only ever see or write their own row.
 alter table public.journals enable row level security;
 
 drop policy if exists journals_select_own on public.journals;
@@ -44,11 +80,5 @@ drop policy if exists journals_delete_own on public.journals;
 create policy journals_delete_own on public.journals
   for delete using (auth.uid() = user_id);
 
--- Belt and braces: no unauthenticated request (the Postgres `anon` role,
--- i.e. the API key with no session at all) should reach this table.
--- Note this is unrelated to Supabase's "anonymous sign-in" *users* — an
--- anonymous-signed-in user still authenticates and holds the Postgres
--- `authenticated` role with a real auth.uid(), so every policy above already
--- covers them with no changes needed.
 revoke all on public.journals from anon;
 grant select, insert, update, delete on public.journals to authenticated;
