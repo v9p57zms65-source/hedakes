@@ -1,27 +1,30 @@
 /* Hedake — Supabase configuration.
  *
- * Both values below are safe to commit. The anon key identifies the project,
- * not you: every row in the journals table is fenced by row-level security to
- * auth.uid(), and the anon (unauthenticated) role has all privileges revoked
- * on that table, so a request with no session can read or write nothing.
+ * Both values below are safe to commit — same as they always were — but
+ * what they unlock changed. This app now syncs across every device with
+ * zero login, the same way the GTA V completion tracker does: every device
+ * reads and writes ONE fixed row (id "hedake-main") in the `journal_state`
+ * table, using nothing but this public anon key. There is no per-user
+ * identity at all — no email, no password, no anonymous-auth session —
+ * which is exactly what makes "just open the page on your phone and it's
+ * already synced" possible.
  *
- * There is no password and no login screen. On first run the app silently
- * calls supabase.auth.signInAnonymously(), which mints a real Supabase user
- * with no email or password — just a uuid. That session is cached by
- * supabase-js in this browser's localStorage, so every later visit restores
- * the same uuid, which is what keeps this device's backup pointed at the
- * same row. Security is entirely Supabase's row-level security on that id,
- * not anything the app itself gates.
+ * Be clear-eyed about what that means for security: it means there isn't
+ * any, beyond this URL not being published anywhere. The anon key above and
+ * the row id in index.html are both sitting in this file's plain-text
+ * source, so anyone who finds this exact GitHub Pages URL and looks at the
+ * page source can read and overwrite this journal. That's an accepted,
+ * deliberate tradeoff for a personal single-user app whose URL isn't
+ * shared — the same one already made for the GTA tracker — not an
+ * oversight. Don't copy this pattern for anything where that wouldn't be
+ * fine.
  *
- * This backs up one device to the cloud; it does not merge two devices into
- * one journal, because there's no shared credential to carry between them
- * (that would need an actual login again).
- *
- * Requires "Allow anonymous sign-ins" turned on for this project — Supabase
- * dashboard → Authentication → Sign In / Providers → Anonymous Sign-Ins.
- * Anonymous auth is off by default on a new project, so this is a one-time
- * manual toggle; without it every push/pull fails quietly and the app just
- * stays local-only.
+ * `journal_state` has row-level security enabled but with an intentionally
+ * permissive "allow all" policy, and full grants to the `anon` role — see
+ * supabase/schema.sql. The older `journals` table (per-user rows keyed to
+ * Supabase Auth identities) is no longer used by this app; it's harmless
+ * dead weight, left in place rather than dropped in case any of that
+ * history is ever wanted back.
  *
  * Clear url/anonKey and the app reverts to local-only — no network at all.
  */
