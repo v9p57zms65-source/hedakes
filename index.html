@@ -179,7 +179,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:99px;ba
 .empty{border:1px dashed var(--color-neutral-800);border-radius:var(--radius-lg);padding:var(--space-8);text-align:center}
 .loc-img{position:relative;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-neutral-800)}
 .loc-img img{display:block;width:100%;height:auto}
-.loc-hot{position:absolute;margin:0;padding:0;border:2px solid transparent;border-radius:10px;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.loc-hot{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:2px solid transparent;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .loc-hot[aria-pressed="true"]{background:color-mix(in srgb,var(--color-accent) 32%,transparent);border-color:var(--color-accent)}
 .loc-hot:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
 .chips-col{display:flex;flex-direction:column;gap:var(--space-2)}
@@ -532,16 +532,16 @@ const LOC_IMG='data:image/webp;base64,UklGRqSpAQBXRUJQVlA4IJipAQDQLAWdASruBncDPj
    on the left half, side/profile view on the right half of one combined
    illustration), calibrated against the image's native 1774x887 pixels. */
 const LOC_HOT=[
-  {v:'Forehead',l:16.9,t:10.1,w:11.3,h:18.0},
-  {v:'Right temple',l:9.9,t:25.9,w:5.9,h:14.7},
-  {v:'Left temple',l:32.1,t:25.9,w:5.9,h:14.7},
-  {v:'Behind the eye',l:15.8,t:39.5,w:16.3,h:10.1},
-  {v:'Crown',l:18.0,t:0.6,w:9.0,h:10.7},
-  {v:'Crown',l:69.9,t:1.1,w:11.3,h:10.1},
-  {v:'Base of skull',l:80.0,t:54.1,w:9.0,h:18.0},
+  {v:'Crown',clip:'polygon(24.13% 3.61%,20.57% 5.64%,18.77% 6.76%,17.53% 7.89%,16.46% 9.02%,15.61% 10.15%,32.58% 10.15%,31.74% 9.02%,30.78% 7.89%,29.54% 6.76%,27.96% 5.64%)'},
+  {v:'Crown',clip:'polygon(74.35% 3.61%,69.56% 5.64%,67.53% 6.76%,66.07% 7.89%,64.88% 9.02%,63.92% 10.15%,84.44% 10.15%,83.54% 9.02%,82.47% 7.89%,81.00% 6.76%,79.20% 5.64%)'},
+  {v:'Forehead',clip:'polygon(15.61% 10.15%,14.21% 12.40%,13.13% 14.66%,12.29% 16.91%,13.81% 25.93%,13.81% 39.46%,34.10% 39.46%,34.10% 25.93%,35.68% 16.91%,34.89% 14.66%,33.88% 12.40%,32.58% 10.15%)'},
+  {v:'Right temple',clip:'polygon(12.29% 16.91%,11.67% 19.17%,11.16% 21.42%,10.77% 23.68%,10.48% 25.93%,10.20% 29.31%,10.15% 32.69%,10.26% 36.08%,10.48% 39.46%,13.81% 39.46%,13.81% 25.93%)'},
+  {v:'Left temple',clip:'polygon(35.68% 16.91%,36.30% 19.17%,36.75% 21.42%,37.15% 23.68%,37.37% 25.93%,37.60% 29.31%,37.66% 32.69%,37.54% 36.08%,37.32% 39.46%,34.10% 39.46%,34.10% 25.93%)'},
+  {v:'Behind the eye',clip:'polygon(13.81% 39.46%,12.97% 45.10%,13.81% 49.61%,34.10% 49.61%,34.95% 45.10%,34.10% 39.46%)'},
+  {v:'Base of skull',clip:'polygon(86.92% 58.62%,86.58% 59.75%,86.25% 60.88%,85.96% 62.01%,85.63% 63.13%,85.40% 64.26%,85.23% 65.39%,85.17% 66.52%,85.23% 67.64%,85.23% 68.77%,85.29% 69.90%,85.34% 71.03%,85.46% 72.15%,85.57% 73.28%,78.92% 73.28%,78.92% 58.62%)'},
 ];
 function headMap(){
-  const hot=LOC_HOT.map(h=>`<button type="button" class="loc-hot" aria-pressed="${draft.locs.includes(h.v)}" aria-label="${esc(h.v)}" data-draftmulti="locs" data-v="${esc(h.v)}" style="left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%"></button>`).join('');
+  const hot=LOC_HOT.map(h=>`<button type="button" class="loc-hot" aria-pressed="${draft.locs.includes(h.v)}" aria-label="${esc(h.v)}" data-draftmulti="locs" data-v="${esc(h.v)}" style="clip-path:${h.clip}"></button>`).join('');
   return `<div class="loc-img"><img src="${LOC_IMG}" alt="Front and side head illustrations with tappable regions for forehead, temples, behind the eye, crown and base of skull" loading="lazy">${hot}</div>
   <div class="chips mt3"><button class="chip" aria-pressed="${draft.locs.includes('All over')}" data-draftmulti="locs" data-v="All over">All over</button></div>
   <p class="muted mt3" style="font-size:12.5px">${draft.locs.length?esc(draft.locs.join(' · ')):'Tap where it hurts'}</p>`;
