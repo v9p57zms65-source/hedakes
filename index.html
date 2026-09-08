@@ -501,12 +501,10 @@ function settingsSection(){
   <div class="card flat mt8">
     <div class="kicker" style="margin-bottom:var(--space-4)">Your data</div>
     <p class="sub" id="syncLine">${esc(syncLabel())}</p>
-    <p class="sub mt3">${SYNC_ON?'Entries are kept in this browser and mirrored to your account, so a second device catches up on sign-in. Export a JSON copy anyway before changing device.':'Everything is stored in this browser only. Nothing is uploaded. Export a copy before clearing your browser data or moving device.'}</p>
-    ${SYNC_ON&&session?`<div class="row mt4" style="gap:var(--space-3)">
-      <button class="btn btn-secondary" style="flex:1" data-act="syncNow"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
-      <button class="btn btn-secondary" style="flex:1" data-act="signOut"><i class="ph ph-sign-out"></i>Sign out</button>
-    </div>`:SYNC_ON?`<button class="btn btn-primary btn-block mt4" data-act="authOpen">
-      <i class="ph ph-lock-key-open"></i>Sign in to sync</button>`:''}
+    <p class="sub mt3">${SYNC_ON?'Entries are kept in this browser and backed up automatically — no account needed. Export a JSON copy anyway before switching devices.':'Everything is stored in this browser only. Nothing is uploaded. Export a copy before clearing your browser data or moving device.'}</p>
+    ${SYNC_ON?`<div class="row mt4" style="gap:var(--space-3)">
+      <button class="btn btn-secondary btn-block" data-act="syncNow"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
+    </div>`:''}
     <div class="row mt4" style="gap:var(--space-3)">
       <button class="btn btn-secondary" style="flex:1" data-act="export"><i class="ph ph-download-simple"></i>Export JSON</button>
       <button class="btn btn-secondary" style="flex:1" data-act="import"><i class="ph ph-upload-simple"></i>Import</button>
@@ -532,7 +530,6 @@ const LOC_IMG='data:image/webp;base64,UklGRqSpAQBXRUJQVlA4IJipAQDQLAWdASruBncDPj
    on the left half, side/profile view on the right half of one combined
    illustration), calibrated against the image's native 1774x887 pixels. */
 const LOC_HOT=[
-  {v:'Crown',clip:'polygon(24.13% 3.61%,20.57% 5.64%,18.77% 6.76%,17.53% 7.89%,16.46% 9.02%,15.61% 10.15%,32.58% 10.15%,31.74% 9.02%,30.78% 7.89%,29.54% 6.76%,27.96% 5.64%)'},
   {v:'Crown',clip:'polygon(74.35% 3.61%,69.56% 5.64%,67.53% 6.76%,66.07% 7.89%,64.88% 9.02%,63.92% 10.15%,84.44% 10.15%,83.54% 9.02%,82.47% 7.89%,81.00% 6.76%,79.20% 5.64%)'},
   {v:'Forehead',clip:'polygon(15.61% 10.15%,14.21% 12.40%,13.13% 14.66%,12.29% 16.91%,13.81% 25.93%,13.81% 39.46%,34.10% 39.46%,34.10% 25.93%,35.68% 16.91%,34.89% 14.66%,33.88% 12.40%,32.58% 10.15%)'},
   {v:'Right temple',clip:'polygon(12.29% 16.91%,11.67% 19.17%,11.16% 21.42%,10.77% 23.68%,10.48% 25.93%,10.20% 29.31%,10.15% 32.69%,10.26% 36.08%,10.48% 39.46%,13.81% 39.46%,13.81% 25.93%)'},
@@ -678,11 +675,7 @@ document.addEventListener('click',ev=>{
   else if(act==='del'){S.entries=S.entries.map(e=>e.id===t.dataset.id?{id:e.id,deleted:true,u:stamp()}:e);save();render();toast('Entry deleted');}
   else if(act==='endTrial'){S.trials=S.trials.map(x=>x.status==='running'?{...x,status:'done',u:stamp()}:x);save();render();toast('Trial closed');}
   else if(act==='seed'){seed();save();render();toast('Sample month loaded','30 days of attacks and check-ins.');}
-  else if(act==='signIn')signIn();
-  else if(act==='authOpen'){authOpen=true;authErr='';window.scrollTo(0,0);render();}
-  else if(act==='authClose'){authOpen=false;render();}
   else if(act==='syncNow')pull();
-  else if(act==='signOut'){sb&&sb.auth.signOut();session=null;syncState='signed-out';render();toast('Signed out','Your journal stays on this device.');}
   else if(act==='export'){
     const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -700,7 +693,6 @@ document.addEventListener('click',ev=>{
 
 document.addEventListener('input',ev=>{
   const t=ev.target;
-  if(t.hasAttribute&&t.hasAttribute('data-authpw')){authPw=t.value;authErr='';return}
   if(t.dataset.draft){
     const k=t.dataset.draft;
     draft[k]=k==='note'?t.value:(t.value===''?null:+t.value);
@@ -716,7 +708,6 @@ document.addEventListener('input',ev=>{
 document.addEventListener('change',ev=>{
   if(ev.target.dataset.setting||ev.target.dataset.dayfield)render();
 });
-document.addEventListener('submit',ev=>{if(ev.target.hasAttribute('data-signin')){ev.preventDefault();signIn();}});
 document.getElementById('sheetCancel').addEventListener('click',closeSheet);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&draft)closeSheet()});
 
@@ -730,7 +721,6 @@ const CFG=window.HEDAKE_CONFIG||{};
 const SYNC_ON=!!(CFG.url&&CFG.anonKey);
 const SB_CDN='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
 let sb=null, session=null, syncState=SYNC_ON?'connecting':'off', syncedAt=null;
-let authEmail=CFG.identity||'', authPw='', authErr='', authOpen=false, authBusy=false;
 
 const loadScript=src=>new Promise((ok,no)=>{
   const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});
@@ -794,72 +784,37 @@ async function initSync(){
       const had=!!session; session=s||null; render();
       if(session&&!had)pull();
     });
-    syncState=session?'syncing':'signed-out'; render();
+    if(!session){
+      /* No visible sign-in: an anonymous Supabase user is created once and
+         its session persists in localStorage, so this same device keeps the
+         same auth.uid() — and the same journal row — from then on. Security
+         is Supabase's row-level security on that id, not an app login. */
+      const {data:anon,error}=await sb.auth.signInAnonymously();
+      if(error)throw error;
+      session=anon.session||null;
+    }
+    syncState=session?'syncing':'error'; render();
     if(session)await pull();
   }catch(err){ syncState='error'; console.warn('sync unavailable',err); render(); }
 }
 
 function syncLabel(){
   if(!SYNC_ON)return 'Local only — no account, nothing uploaded.';
-  if(!session)return 'Not signed in. This device only.';
-  const who=session.user.email||'your account';
+  if(!session)return syncState==='error'?'Sync unavailable — changes are safe locally.':'Connecting…';
+  const who='your backup';
   const when=syncedAt?' · synced '+relTime(syncedAt):'';
   return {connecting:'Connecting…',syncing:'Syncing…',pending:'Saving…',
     synced:'Synced to '+who+when,error:'Sync failed — changes are safe locally, will retry',
-    'signed-out':'Not signed in'}[syncState]||who;
+    }[syncState]||who;
 }
 const relTime=ts=>{const s=Math.round((Date.now()-ts)/1000);
   return s<60?'just now':s<3600?Math.round(s/60)+' min ago':Math.round(s/3600)+' h ago'};
 function paintSync(){const n=document.getElementById('syncLine');if(n)n.textContent=syncLabel();}
 
-async function signIn(){
-  if(!sb||authBusy)return;
-  if(!authPw){authErr='Enter your password.';render();return}
-  authBusy=true; authErr=''; render();
-  const {error}=await sb.auth.signInWithPassword({email:(authEmail||'').trim(),password:authPw});
-  authBusy=false;
-  if(error){authErr=error.message||'Sign-in failed.';console.warn(error);render();return}
-  authPw=''; authOpen=false; render();
-  toast('Signed in','Catching up with your other device…');
-}
-
-function screenAuth(){
-  const gated=CFG.requireAuth!==false;
-  return `
-  <div style="min-height:${gated?'70vh':'auto'};display:flex;flex-direction:column;justify-content:center">
-    <div style="width:44px;height:44px;border-radius:99px;border:2px solid var(--color-accent);
-      position:relative;margin-bottom:var(--space-8)">
-      <span style="position:absolute;top:-3px;right:2px;width:7px;height:7px;border-radius:99px;
-        background:var(--color-accent-300)"></span></div>
-    <h1 class="screen">${gated?'Hedake':'Sign in to sync'}</h1>
-    <p class="sub">${gated
-      ?'Your headache journal. Sign in to unlock it on this device.'
-      :'Signing in mirrors this journal to your account, so your phone and laptop show the same thing. Your entries stay on this device either way.'}</p>
-
-    <div class="card mt8">
-      <div class="kicker" style="margin-bottom:var(--space-3)">Account</div>
-      <div class="between"><span style="font-size:13.5px;color:var(--color-neutral-300)">${esc(authEmail||'—')}</span>
-        <span class="tag">the only account</span></div>
-      <div class="kicker mt6" style="margin-bottom:var(--space-3)">Password</div>
-      <form data-signin><input class="input" type="password" autocomplete="current-password"
-        placeholder="Your password" value="${esc(authPw)}" data-authpw></form>
-      ${authErr?`<p class="mt3" style="font-size:12.5px;color:var(--color-accent-300)">${esc(authErr)}</p>`:''}
-      <button class="btn btn-primary btn-block btn-lg mt4" data-act="signIn" ${authBusy?'disabled':''}>
-        <i class="ph ph-lock-key-open"></i>${authBusy?'Signing in…':'Sign in'}</button>
-    </div>
-
-    ${gated?'':`<button class="btn btn-secondary btn-block btn-lg mt3" data-act="authClose">Not now — keep it local</button>`}
-    <p class="muted mt8" style="font-size:11.5px">One account, created from the Supabase dashboard, with sign-ups closed — so no second account can exist. Row-level security scopes every read and write to it.</p>
-  </div>`;
-}
-
 /* ── render ─────────────────────────────────────────────────────── */
-/* One screen now — no tabs, no bottom nav. Today (log, check-in, metrics,
-   chart, history) and the data/settings card render together; sign-in
-   replaces the whole screen only while it's actually gating access. */
+/* One screen — no tabs, no bottom nav, no sign-in wall. Sync happens
+   silently in the background against an anonymous Supabase identity. */
 function render(){
-  const gated=SYNC_ON&&CFG.requireAuth!==false&&!session;
-  if(gated||(authOpen&&!session)){document.getElementById('app').innerHTML=screenAuth();return}
   document.getElementById('app').innerHTML=screenToday();
 }
 
