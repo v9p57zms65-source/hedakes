@@ -107,6 +107,15 @@ input,select,textarea{font:inherit;color:inherit}
   box-shadow:var(--shadow-sm);cursor:pointer;transition:color .15s,border-color .15s}
 .theme-toggle:hover{color:var(--color-accent);border-color:var(--color-accent)}
 .theme-toggle i{font-size:17px}
+/* Pull-to-refresh: sits behind #app at the very top of #shell, revealed as
+   #app is dragged down (see the touch handlers near the bottom of the
+   script). Opacity/rotation are driven inline from JS during the drag;
+   the .spin class takes over once the refresh is actually in flight. */
+#pullIndicator{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:0;right:0;height:40px;
+  display:flex;align-items:center;justify-content:center;color:var(--color-accent);opacity:0;z-index:2;pointer-events:none}
+#pullIndicator i{font-size:20px;display:block;transform:rotate(0deg)}
+#pullIndicator.spin i{animation:pr-spin .7s linear infinite}
+@keyframes pr-spin{to{transform:rotate(360deg)}}
 h1.screen{font-size:22px;margin-bottom:var(--space-1)}
 .kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)}
 .sub{font-size:13.5px;color:var(--color-neutral-400)}
@@ -261,6 +270,7 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:99px;ba
 </template>
 <div id="shell">
   <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch between light and dark theme" title="Switch theme"><i class="ph ph-moon" id="themeIcon"></i></button>
+  <div id="pullIndicator" class="pull-indicator" aria-hidden="true"><i class="ph ph-arrow-clockwise"></i></div>
   <main id="app" aria-live="polite"></main>
 </div>
 
@@ -477,7 +487,7 @@ function screenToday(){
     </button>`:''}
     <button class="opt ${u?'mt3':''}" data-act="log" style="border-color:var(--color-accent);background:color-mix(in srgb,var(--color-accent) 12%,transparent)">
       <span class="row" style="gap:var(--space-4)">
-        <i class="ph-fill ph-plus-circle" style="font-size:26px;color:var(--color-accent)"></i>
+        <i class="ph-fill ph-brain" style="font-size:24px;color:var(--color-accent)"></i>
         <span><span style="display:block;font-weight:500">Log Headache</span>
         <span class="muted" style="display:block;font-size:12.5px">Four steps · about 40 seconds</span></span>
       </span><i class="ph ph-arrow-right" style="font-size:16px;color:var(--color-neutral-600)"></i>
@@ -491,7 +501,7 @@ function screenToday(){
     </button>
     <button class="opt mt3" data-act="logstomach">
       <span class="row" style="gap:var(--space-4)">
-        <i class="ph-fill ph-circle-dashed" style="font-size:22px;color:var(--color-neutral-300)"></i>
+        <i class="ph-fill ph-hurricane" style="font-size:22px;color:var(--color-neutral-300)"></i>
         <span><span style="display:block;font-weight:500">Log Stomach Pain</span>
         <span class="muted" style="display:block;font-size:12.5px">Four steps · about 40 seconds</span></span>
       </span><i class="ph ph-arrow-right" style="font-size:16px;color:var(--color-neutral-600)"></i>
@@ -1297,6 +1307,65 @@ if(themeBtn)themeBtn.addEventListener('click',toggleTheme);
 if(window.matchMedia)
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{ if(!getExplicitTheme())applyTheme(); });
 applyTheme();
+
+/* ── pull to refresh ────────────────────────────────────────────── */
+/* Drags #app itself down (via transform) to reveal the spinner sitting
+   behind it at the top of #shell — see #pullIndicator's CSS. Pointer
+   events (not touch-only) so it works from a mouse drag too. Only arms
+   when the page is scrolled to the very top and the log sheet isn't open,
+   so it never fights the severity slider or the sheet's own scrolling. */
+function initPullToRefresh(){
+  const app=document.getElementById('app');
+  const ind=document.getElementById('pullIndicator');
+  if(!app||!ind)return;
+  const THRESH=64, MAX=90;
+  let startY=0, dragging=false, pullDist=0, refreshing=false, pid=null;
+  const atTop=()=>(window.scrollY||document.documentElement.scrollTop||0)<=0;
+  const sheetOpen=()=>{const s=document.getElementById('sheet');return s&&s.classList.contains('open');};
+  const reset=()=>{app.style.transform='';ind.style.opacity='0';pullDist=0;};
+  app.addEventListener('pointerdown',ev=>{
+    if(refreshing||sheetOpen()||!atTop())return;
+    if(ev.pointerType==='mouse'&&ev.button!==0)return;
+    startY=ev.clientY; dragging=true; pullDist=0; pid=ev.pointerId;
+    app.style.transition='none';
+  });
+  app.addEventListener('pointermove',ev=>{
+    if(!dragging||ev.pointerId!==pid)return;
+    const dy=ev.clientY-startY;
+    if(dy<=0||!atTop()){ if(pullDist>0)reset(); return; }
+    pullDist=Math.min(dy*0.5,MAX);
+    app.style.transform='translateY('+pullDist+'px)';
+    ind.style.opacity=String(Math.min(1,pullDist/40));
+    const icon=ind.querySelector('i'); if(icon)icon.style.transform='rotate('+Math.min(pullDist*3,360)+'deg)';
+    ev.preventDefault();
+  },{passive:false});
+  function endDrag(ev){
+    if(!dragging||(ev&&ev.pointerId!==pid))return;
+    dragging=false;
+    app.style.transition='transform .25s cubic-bezier(.2,.8,.2,1)';
+    if(pullDist>=THRESH){
+      refreshing=true;
+      app.style.transform='translateY(44px)';
+      ind.style.opacity='1'; ind.classList.add('spin');
+      const icon=ind.querySelector('i'); if(icon)icon.style.transform='';
+      doRefresh().finally(()=>{
+        app.style.transform=''; ind.classList.remove('spin'); ind.style.opacity='0'; refreshing=false;
+      });
+    }else{
+      app.style.transform=''; ind.style.opacity='0';
+    }
+    pullDist=0; pid=null;
+  }
+  app.addEventListener('pointerup',endDrag);
+  app.addEventListener('pointercancel',endDrag);
+}
+async function doRefresh(){
+  try{
+    if(SYNC_ON){ await pull(); toast('Refreshed','Synced across your devices'); }
+    else { render(); toast('Refreshed','Up to date'); }
+  }catch(e){ toast('Refresh failed','Check your connection'); }
+}
+initPullToRefresh();
 
 render();
 initSync();
